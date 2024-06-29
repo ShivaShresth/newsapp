@@ -1,32 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:newsapi/screens/article.models.dart';
+import 'package:newsapi/pages/home.dart';
+import 'package:newsapi/screens/favroite_proivder.dart';
+import 'package:provider/provider.dart';
+import 'package:newsapi/models/article_model.dart';
+import 'package:newsapi/pages/article_view.dart';
 
-class FavoriteScreen extends StatelessWidget {
+class FavoritesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final articleBox = Hive.box<ArticleModels>('articles');
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('Favorites'),
+        title: Text("Favorites"),
       ),
-      body: ListView.builder(
-        itemCount: articleBox.length,
-        itemBuilder: (context, index) {
-          final article = articleBox.getAt(index) as ArticleModels;
-          if (article.isFavorite) {
-            return ListTile(
-              title: Text(article.title),
-            //  subtitle: Text(article.desc),
-              leading: Image.network(article.imageUrl),
-            );
-          } else {
-            return SizedBox.shrink();
-          }
+      body: Consumer<FavoritesProvider>(
+        builder: (context, favoritesProvider, child) {
+          final favorites = favoritesProvider.favorites;
+          return favorites.isEmpty
+              ? Center(
+                  child: Text("No favorites added."),
+                )
+              : ListView.builder(
+                  itemCount: favorites.length,
+                  itemBuilder: (context, index) {
+                    return BlogTile(
+                      url: favorites[index].url!,
+                      desc: favorites[index].description!,
+                      title: favorites[index].title!,
+                      imageUrl: favorites[index].urlToImage!,
+                      isFavorite: true,
+                      onFavoriteToggle: () {
+                        context.read<FavoritesProvider>().removeFavorite(favorites[index]);
+                      },
+                    );
+                  },
+                );
         },
       ),
     );
   }
 }
-
