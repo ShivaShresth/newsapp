@@ -1,3 +1,5 @@
+import 'package:newsapi/sqlitedatabase/favorite_article.dart';
+
 class ArticleModel{  
  String? author;
  String? title;
@@ -7,4 +9,13 @@ class ArticleModel{
  String? content; 
 
  ArticleModel({this.author,this.title,this.description,this.url,this.urlToImage,this.content});
+
+   FavoriteArticle toFavoriteArticle() {
+    return FavoriteArticle(
+      url: url!,
+      title: title!,
+      description: description!,
+      urlToImage: urlToImage!,
+    );
+  }
 }

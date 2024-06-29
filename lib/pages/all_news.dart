@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:newsapi/models/article_model.dart';
+import 'package:newsapi/models/article_models.dart';
 import 'package:newsapi/models/slider_model.dart';
 import 'package:newsapi/pages/article_view.dart';
 import 'package:newsapi/services/news.dart';

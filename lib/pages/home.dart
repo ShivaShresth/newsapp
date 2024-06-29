@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:newsapi/models/category_model.dart';
 import 'package:newsapi/models/slider_model.dart';
-import 'package:newsapi/screens/favroite_proivder.dart';
-import 'package:newsapi/services/slider_data.dart';
-import 'package:provider/provider.dart';
-import 'package:newsapi/models/article_model.dart';
+import 'package:newsapi/models/article_models.dart';
 import 'package:newsapi/pages/article_view.dart';
 import 'package:newsapi/pages/category_news.dart';
+import 'package:newsapi/screens/favroite_proivder.dart';
 import 'package:newsapi/services/data.dart';
+import 'package:newsapi/services/slider_data.dart';
 import 'package:newsapi/services/news.dart';
+import 'package:newsapi/sqlitedatabase/favorite_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -30,17 +31,17 @@ class _HomeState extends State<Home> {
 
   @override
   void initState() {
+    super.initState();
     categories = getCategories();
     getSlider();
     getNews();
-    super.initState();
   }
 
   getNews() async {
     News newsClass = News();
     await newsClass.getNews();
-    articles = newsClass.news;
     setState(() {
+      articles = newsClass.news;
       _loading = false;
     });
   }
@@ -48,7 +49,9 @@ class _HomeState extends State<Home> {
   getSlider() async {
     Sliders slider = Sliders();
     await slider.getSlider();
-    sliders = slider.sliders;
+    setState(() {
+      sliders = slider.sliders;
+    });
   }
 
   @override
@@ -63,21 +66,22 @@ class _HomeState extends State<Home> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    margin: EdgeInsets.only(left: 20.0),
-                    height: 70,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      shrinkWrap: true,
-                      itemCount: categories.length,
-                      itemBuilder: (context, index) {
-                        return CategoryTile(
-                          image: categories[index].image!,
-                          categoryName: categories[index].categoryName!,
-                        );
-                      },
+                  if (categories.isNotEmpty)
+                    Container(
+                      margin: EdgeInsets.only(left: 20.0),
+                      height: 70,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        shrinkWrap: true,
+                        itemCount: categories.length,
+                        itemBuilder: (context, index) {
+                          return CategoryTile(
+                            image: categories[index].image!,
+                            categoryName: categories[index].categoryName!,
+                          );
+                        },
+                      ),
                     ),
-                  ),
                   SizedBox(height: 30),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -90,27 +94,29 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                   SizedBox(height: 10),
-                  CarouselSlider.builder(
-                    itemCount: sliders.length,
-                    itemBuilder: (context, index, realIndex) {
-                      String? res = sliders[index].urlToImage;
-                      String? res1 = sliders[index].title;
-                      return buildImage(res!, index, res1!);
-                    },
-                    options: CarouselOptions(
-                      height: 250,
-                      autoPlay: true,
-                      enlargeCenterPage: true,
-                      enlargeStrategy: CenterPageEnlargeStrategy.height,
-                      onPageChanged: (index, reason) {
-                        setState(() {
-                          activeIndex = index;
-                        });
+                  if (sliders.isNotEmpty)
+                    CarouselSlider.builder(
+                      itemCount: sliders.length,
+                      itemBuilder: (context, index, realIndex) {
+                        String? res = sliders[index].urlToImage;
+                        String? res1 = sliders[index].title;
+                        return buildImage(res!, index, res1!);
                       },
+                      options: CarouselOptions(
+                        height: 250,
+                        autoPlay: true,
+                        enlargeCenterPage: true,
+                        enlargeStrategy: CenterPageEnlargeStrategy.height,
+                        onPageChanged: (index, reason) {
+                          setState(() {
+                            activeIndex = index;
+                          });
+                        },
+                      ),
                     ),
-                  ),
                   SizedBox(height: 30.0),
-                  Center(child: buildIndicator()),
+                  if (sliders.isNotEmpty)
+                    Center(child: buildIndicator()),
                   SizedBox(height: 30),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -123,14 +129,16 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                   SizedBox(height: 10),
-                  Container(
-                    child: ListView.builder(
+                  if (articles.isNotEmpty)
+                    ListView.builder(
                       shrinkWrap: true,
                       physics: ClampingScrollPhysics(),
                       itemCount: articles.length,
                       itemBuilder: (context, index) {
                         final article = articles[index];
-                        final isFavorite = context.watch<FavoritesProvider>().isFavorite(article);
+                        final favoriteArticle = article.toFavoriteArticle();
+                        final isFavorite = context.watch<FavoritesProvider>().isFavorite(favoriteArticle);
+
                         return BlogTile(
                           url: article.url!,
                           desc: article.description!,
@@ -140,15 +148,14 @@ class _HomeState extends State<Home> {
                           onFavoriteToggle: () {
                             final provider = context.read<FavoritesProvider>();
                             if (isFavorite) {
-                              provider.removeFavorite(article);
+                              provider.removeFavorite(favoriteArticle);
                             } else {
-                              provider.addFavorite(article);
+                              provider.addFavorite(favoriteArticle);
                             }
                           },
                         );
                       },
                     ),
-                  ),
                 ],
               ),
             ),
@@ -302,46 +309,43 @@ class BlogTile extends StatelessWidget {
         child: Material(
           elevation: 3.0,
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    height: 120,
-                    width: 120,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                SizedBox(width: 8.0),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.black),
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        imageUrl,
+                        height: 200,
+                        width: MediaQuery.of(context).size.width,
+                        fit: BoxFit.cover,
                       ),
-                      SizedBox(height: 7.0),
-                      Text(
-                        desc,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Colors.black54),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: IconButton(
+                        icon: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: Colors.red,
+                        ),
+                        onPressed: onFavoriteToggle,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  icon: Icon(
-                    isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: isFavorite ? Colors.red : Colors.black,
-                  ),
-                  onPressed: onFavoriteToggle,
+                SizedBox(height: 8.0),
+                Text(
+                  title,
+                  style: TextStyle(
+                      fontSize: 18.0, fontWeight: FontWeight.w600),
+                ),
+                SizedBox(height: 8.0),
+                Text(
+                  desc,
+                  style: TextStyle(color: Colors.black54),
                 ),
               ],
             ),
