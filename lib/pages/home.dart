@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:newsapi/models/category_model.dart';
 import 'package:newsapi/models/slider_model.dart';
 import 'package:newsapi/models/article_models.dart';
@@ -22,9 +23,13 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  ScrollController? scrollController;
+  bool _isBottomBarVisible = true;
+  bool _isAppBarVisible = true;
   List<CategoryModel> categories = [];
   List<SliderModel> sliders = [];
   List<ArticleModel> articles = [];
+
   bool _loading = true;
 
   int activeIndex = 0;
@@ -35,6 +40,14 @@ class _HomeState extends State<Home> {
     categories = getCategories();
     getSlider();
     getNews();
+    scrollController = ScrollController();
+    scrollController!.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    scrollController!.dispose();
+    super.dispose();
   }
 
   getNews() async {
@@ -54,18 +67,43 @@ class _HomeState extends State<Home> {
     });
   }
 
+  void _scrollListener() {
+    if (scrollController!.position.userScrollDirection == ScrollDirection.reverse) {
+      setState(() {
+        _isBottomBarVisible = false;
+        _isAppBarVisible = false;
+      });
+    } else if (scrollController!.position.userScrollDirection == ScrollDirection.forward) {
+      setState(() {
+        _isBottomBarVisible = true;
+        _isAppBarVisible = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("hello"),
-      ),
+      appBar: _isAppBarVisible
+          ? AppBar(
+              title: Text(
+                "News",
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.red,
+            )
+          : PreferredSize(
+              preferredSize: Size(0.0, 0.0),
+              child: Container(),
+            ),
       body: _loading
           ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
+              controller: scrollController,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  SizedBox(height: 20),
                   if (categories.isNotEmpty)
                     Container(
                       margin: EdgeInsets.only(left: 20.0),
@@ -115,8 +153,7 @@ class _HomeState extends State<Home> {
                       ),
                     ),
                   SizedBox(height: 30.0),
-                  if (sliders.isNotEmpty)
-                    Center(child: buildIndicator()),
+                  if (sliders.isNotEmpty) Center(child: buildIndicator()),
                   SizedBox(height: 30),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -159,31 +196,37 @@ class _HomeState extends State<Home> {
                 ],
               ),
             ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: [
-          BottomNavigationBarItem(
-            backgroundColor: Colors.red,
-            icon: Icon(Icons.home, color: Colors.black),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search, color: Colors.black),
-            label: 'Search',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person, color: Colors.black),
-            label: 'Profile',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite, color: Colors.black),
-            label: 'Favorites',
-          ),
-        ],
-        onTap: (index) {
-          if (index == 3) {
-            Navigator.pushNamed(context, '/favorites');
-          }
-        },
+      bottomNavigationBar: AnimatedCrossFade(
+        duration: Duration(milliseconds: 300),
+        crossFadeState: _isBottomBarVisible ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+        firstChild: BottomNavigationBar(
+          backgroundColor: Colors.green,
+          items: [
+            BottomNavigationBarItem(
+              backgroundColor: Colors.red,
+              icon: Icon(Icons.home, color: Colors.white),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search, color: Colors.black),
+              label: 'Search',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person, color: Colors.black),
+              label: 'Profile',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.favorite, color: Colors.black),
+              label: 'Favorites',
+            ),
+          ],
+          onTap: (index) {
+            if (index == 3) {
+              Navigator.pushReplacementNamed(context, '/favorites');
+            }
+          },
+        ),
+        secondChild: SizedBox.shrink(),
       ),
     );
   }
@@ -207,16 +250,19 @@ class _HomeState extends State<Home> {
               margin: EdgeInsets.only(top: 170),
               width: MediaQuery.of(context).size.width,
               decoration: BoxDecoration(
-                  color: Colors.black26,
-                  borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(20),
-                      bottomRight: Radius.circular(10))),
+                color: Colors.black26,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(10),
+                ),
+              ),
               child: Text(
                 name,
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15.0,
-                    fontWeight: FontWeight.w500),
+                  color: Colors.white,
+                  fontSize: 15.0,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             )
           ],
@@ -226,8 +272,7 @@ class _HomeState extends State<Home> {
   Widget buildIndicator() => AnimatedSmoothIndicator(
         activeIndex: activeIndex,
         count: sliders.length,
-        effect: SlideEffect(
-            dotWidth: 15, dotHeight: 15, activeDotColor: Colors.blue),
+        effect: SlideEffect(dotWidth: 15, dotHeight: 15, activeDotColor: Colors.blue),
       );
 }
 
@@ -241,7 +286,9 @@ class CategoryTile extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         Navigator.push(
-            context, MaterialPageRoute(builder: (context) => CategoryNews(name: categoryName)));
+          context,
+          MaterialPageRoute(builder: (context) => CategoryNews(name: categoryName)),
+        );
       },
       child: Container(
         margin: EdgeInsets.only(right: 16),
@@ -267,9 +314,10 @@ class CategoryTile extends StatelessWidget {
                 child: Text(
                   categoryName,
                   style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             )
@@ -339,8 +387,7 @@ class BlogTile extends StatelessWidget {
                 SizedBox(height: 8.0),
                 Text(
                   title,
-                  style: TextStyle(
-                      fontSize: 18.0, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.w600),
                 ),
                 SizedBox(height: 8.0),
                 Text(

@@ -6,6 +6,9 @@ import 'package:provider/provider.dart';
 
 
 class FavoritesScreen extends StatelessWidget {
+     ScrollController? scrollController;
+  bool _isBottomBarVisible = true;
+  bool _isAppBarVisible = true;
   @override
   Widget build(BuildContext context) {
     final favoritesProvider = context.watch<FavoritesProvider>();
@@ -13,7 +16,8 @@ class FavoritesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Favorites'),
+        title: Text('Favorites',style: TextStyle(color: Colors.white60),),
+        backgroundColor: Colors.red,
       ),
       body: ListView.builder(
         itemCount: favoriteArticles.length,
@@ -36,6 +40,48 @@ class FavoritesScreen extends StatelessWidget {
             },
           );
         },
+      ),
+          bottomNavigationBar: AnimatedCrossFade(
+        
+        duration: Duration(milliseconds:300),
+        crossFadeState: _isBottomBarVisible?CrossFadeState.showFirst:CrossFadeState.showSecond,
+        firstChild: BottomNavigationBar(
+          backgroundColor: Colors.green,
+          items: [
+            BottomNavigationBarItem(
+              backgroundColor: Colors.red,
+              icon: Icon(Icons.home, color: Colors.black),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search, color: Colors.black),
+              label: 'Search',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person, color: Colors.black),
+              label: 'Profile',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.favorite, color: Colors.black),
+              label: 'Favorites',
+              
+            ),
+          ],
+          onTap: (index) {
+            if (index == 3) {
+                 Navigator.pushReplacementNamed(context, '/favorites');
+
+            }
+            if(index==0){  
+             Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(builder: (context) => Home()),
+);
+
+            }
+          },
+        ),
+        secondChild: SizedBox.shrink(),
       ),
     );
   }

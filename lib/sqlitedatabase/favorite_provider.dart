@@ -15,7 +15,9 @@ class FavoritesProvider extends ChangeNotifier {
 
   void removeFavorite(FavoriteArticle article) {
     _favorites.remove(article);
+    if(article==null){
     DatabaseHelper.instance.delete(article.id!);
+    }
     notifyListeners();
   }
 

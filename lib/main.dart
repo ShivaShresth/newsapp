@@ -4,6 +4,7 @@ import 'package:newsapi/screens/favorite_screen.dart';
 import 'package:newsapi/screens/favroite_proivder.dart';
 import 'package:newsapi/sqlitedatabase/favorite_provider.dart';
 import 'package:newsapi/sqlitedatabase/favorite_screen.dart';
+import 'package:newsapi/sqlitedatabase/splash_screen.dart';
 
 import 'package:provider/provider.dart';
 
@@ -19,7 +20,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => FavoritesProvider()..loadFavorites()),
       ],
       child: MaterialApp(
-        home: Home(),
+        debugShowCheckedModeBanner: false,
+        home: SplashScreen(),
         routes: {
           '/favorites': (context) => FavoritesScreen(),
         },
